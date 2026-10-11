@@ -1,0 +1,54 @@
+{
+ "python": "3.13.9",
+ "platform": "macOS-14.5-arm64-arm-64bit-Mach-O",
+ "machine": "arm64",
+ "cpus": 8,
+ "langdetect_rs": "0.1.0",
+ "texts": 2000,
+ "cold_start_ms": {
+  "langdetect": 244.1,
+  "langdetect_rs": 74.1
+ },
+ "rows": [
+  {
+   "dataset": "papluca",
+   "seed": null,
+   "avg_chars": 111,
+   "langdetect_ms": 1.4516,
+   "loop_ms": 0.0365,
+   "batch_ms": 0.0059,
+   "loop_speedup": 39.8,
+   "batch_speedup": 245.9
+  },
+  {
+   "dataset": "wili",
+   "seed": null,
+   "avg_chars": 364,
+   "langdetect_ms": 3.4548,
+   "loop_ms": 0.0786,
+   "batch_ms": 0.0118,
+   "loop_speedup": 44.0,
+   "batch_speedup": 292.7
+  },
+  {
+   "dataset": "papluca",
+   "seed": 0,
+   "avg_chars": 111,
+   "langdetect_ms": 1.4649,
+   "loop_ms": 0.0285,
+   "batch_ms": 0.0047,
+   "loop_speedup": 51.3,
+   "batch_speedup": 314.7
+  },
+  {
+   "dataset": "wili",
+   "seed": 0,
+   "avg_chars": 364,
+   "langdetect_ms": 3.4463,
+   "loop_ms": 0.066,
+   "batch_ms": 0.0116,
+   "loop_speedup": 52.2,
+   "batch_speedup": 296.8
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "langdetect-rs"
+description = "Fast drop-in replacement for langdetect: the same results, bit for bit, from a Rust core"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Alex Kholodniak", email = "alexandrkholodniak@gmail.com" }]
+requires-python = ">=3.9"
+keywords = ["langdetect", "language-detection", "language-identification", "nlp", "rust"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Text Processing :: Linguistic",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/SyntaxSpirits/langdetect-rs"
+Issues = "https://github.com/SyntaxSpirits/langdetect-rs/issues"
+
+[dependency-groups]
+dev = ["pytest", "hypothesis", "langdetect==1.0.9"]
+bench = ["langdetect==1.0.9", "pyarrow"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "langdetect_rs._core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["langdetect_rs"]
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "Cargo.toml" },
+    { file = "src/**/*.rs" },
+    { file = "../../crates/langdetect/Cargo.toml" },
+    { file = "../../crates/langdetect/build.rs" },
+    { file = "../../crates/langdetect/src/**/*.rs" },
+]

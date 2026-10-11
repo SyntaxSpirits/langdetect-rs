@@ -1,0 +1,23 @@
+[package]
+name = "langdetect"
+description = "Port of the langdetect language detector that reproduces its results bit for bit"
+readme = "../../README.md"
+keywords = ["language", "detection", "langdetect", "nlp", "text"]
+categories = ["text-processing"]
+include = ["src/**/*.rs", "build.rs", "profiles/*", "Cargo.toml", "LICENSE", "NOTICE"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+getrandom = "0.3"
+regex = { version = "1.10", default-features = false, features = ["std", "perf"] }
+rustc-hash = "2"
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[build-dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }

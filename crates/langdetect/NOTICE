@@ -1,0 +1,9 @@
+langdetect (Rust)
+Copyright 2026 Alex Kholodniak
+
+This product is a Rust port of langdetect (https://github.com/Mimino666/langdetect),
+Copyright 2014-2015 Michal "Mimino" Danilak, licensed under the Apache License 2.0,
+which is a port of language-detection (https://github.com/shuyo/language-detection),
+Copyright (c) 2010-2014 Cybozu Labs, Inc., licensed under the Apache License 2.0.
+The language profiles in profiles/ and the normalisation tables in src/tables.rs are
+taken from langdetect 1.0.9.
