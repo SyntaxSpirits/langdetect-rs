@@ -9,7 +9,7 @@ edition = "2021"
 rust-version = "1.85"
 license = "Apache-2.0"
 repository = "https://github.com/SyntaxSpirits/langdetect-rs"
-homepage = "https://github.com/SyntaxSpirits/langdetect-rs"
+homepage = "https://syntaxspirits.dev/langdetect-rs"
 
 [profile.release]
 lto = "thin"
