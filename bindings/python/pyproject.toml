@@ -22,6 +22,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
+Homepage = "https://syntaxspirits.dev/langdetect-rs"
 Repository = "https://github.com/SyntaxSpirits/langdetect-rs"
 Issues = "https://github.com/SyntaxSpirits/langdetect-rs/issues"
 
