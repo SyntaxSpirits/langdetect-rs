@@ -58,6 +58,19 @@ detect_batch(["Guten Morgen, wie geht es dir heute?", "Bonjour tout le monde", "
 
 Set `RAYON_NUM_THREADS` to limit the number of threads.
 
+### unstructured
+
+Since 0.27.28, `unstructured` uses `langdetect-rs` when it is installed and
+`UNSTRUCTURED_USE_LANGDETECT_RS=true` is set before `unstructured` is imported:
+
+```bash
+pip install "unstructured>=0.27.28" langdetect-rs
+export UNSTRUCTURED_USE_LANGDETECT_RS=true
+```
+
+Detected languages stay the same. If the variable is set but `langdetect-rs` is missing,
+`unstructured` logs a warning and uses `langdetect`.
+
 ### Code you do not control
 
 When a library imports `langdetect` itself, call `install()` before importing that library:
@@ -67,7 +80,7 @@ import langdetect_rs
 
 langdetect_rs.install()  # `import langdetect` now returns langdetect_rs
 
-from unstructured.partition.auto import partition
+import lm_eval
 ```
 
 `install()` covers `langdetect` and its modules `detector`, `detector_factory`,
