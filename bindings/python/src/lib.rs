@@ -134,6 +134,12 @@ fn map_batch<T: Send>(texts: &[Text<'_>], f: impl Fn(&str) -> T + Sync) -> Vec<T
     }
 }
 
+/// The `str.isupper()` tables for `unicodedata.unidata_version`: its own when built in,
+/// otherwise the latest.
+fn unicode_version(unidata_version: &str) -> UnicodeVersion {
+    UnicodeVersion::from_unidata(unidata_version).unwrap_or(UnicodeVersion::V17_0)
+}
+
 #[pyclass(module = "langdetect_rs._core")]
 struct Factory {
     inner: DetectorFactory,
@@ -149,7 +155,7 @@ impl Factory {
             } else {
                 SumMode::Sequential
             },
-            unicode: UnicodeVersion::from_unidata(unidata_version).unwrap_or(UnicodeVersion::V17_0),
+            unicode: unicode_version(unidata_version),
         };
         Factory {
             inner: DetectorFactory::new(compat),
@@ -408,7 +414,15 @@ fn builtin_files() -> Vec<String> {
     DetectorFactory::builtin_files()
 }
 
-#[pymodule]
+/// The Unicode version of the `str.isupper()` tables that a factory uses on this Python.
+#[pyfunction]
+fn unicode_tables(unidata_version: &str) -> &'static str {
+    unicode_version(unidata_version).as_str()
+}
+
+/// The Python layer (the shared factory and seed cache, `DetectorFactory`, `Detector`) assumes
+/// the GIL, so free-threaded Python keeps it enabled for this module.
+#[pymodule(gil_used = true)]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<Factory>()?;
@@ -418,5 +432,6 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(normalize_char, m)?)?;
     m.add_function(wrap_pyfunction!(vietnamese_tables, m)?)?;
     m.add_function(wrap_pyfunction!(builtin_files, m)?)?;
+    m.add_function(wrap_pyfunction!(unicode_tables, m)?)?;
     Ok(())
 }
