@@ -4,20 +4,20 @@ bindings/python/tests/check_standalone.py expects from langdetect_rs without lan
 Usage: python gen_standalone.py OUT.json
 Run it under a Python up to 3.11 and under one from 3.12, which sum() differently; each run
 adds the results for its Python and keeps the texts already in OUT.json. Profiles are loaded
-in name order, as langdetect_rs does when langdetect is not installed.
+in name order, as langdetect_rs does when langdetect is not installed. Probabilities below
+SMALL are left out of langprob.
 """
 
-import hashlib
 import json
 import os
 import random
-import struct
 import sys
 
 from langdetect import DetectorFactory, LangDetectException
 from langdetect.detector_factory import PROFILES_DIRECTORY
 
 SEED = 0
+SMALL = 1e-12
 
 POOLS = [
     (0x20, 0x7E),
@@ -62,8 +62,8 @@ def make_texts():
     return texts
 
 
-def digest(langprob):
-    return hashlib.sha256(struct.pack(f"<{len(langprob)}d", *langprob)).hexdigest()
+def significant(langlist, langprob):
+    return {lang: p for lang, p in zip(langlist, langprob) if p >= SMALL}
 
 
 def main():
@@ -92,7 +92,8 @@ def main():
         except LangDetectException:
             results.append({"langs": None, "langprob": None})
             continue
-        results.append({"langs": langs, "langprob": digest(detector.langprob)})
+        langprob = significant(factory.langlist, detector.langprob)
+        results.append({"langs": langs, "langprob": langprob})
     data["neumaier" if sys.version_info >= (3, 12) else "sequential"] = results
 
     fields = [f'"seed": {data["seed"]}']

@@ -1,6 +1,7 @@
 """Behaviour that depends on the environment: langdetect missing, an unknown Unicode version,
 free-threaded Python."""
 
+import importlib.util
 import json
 import os
 import shutil
@@ -17,6 +18,13 @@ from langdetect_rs import _core
 
 TESTS = Path(__file__).parent
 GENERATOR = TESTS.parents[2] / "scripts" / "gen_standalone.py"
+
+
+def load_check():
+    spec = importlib.util.spec_from_file_location("check_standalone", TESTS / "check_standalone.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def run_python(code, *args):
@@ -45,7 +53,7 @@ def test_without_langdetect():
         str(TESTS / "check_standalone.py"),
     )
     assert out.returncode == 0, out.stdout + out.stderr
-    assert "300 texts identical" in out.stdout
+    assert "300 texts match" in out.stdout
 
 
 @pytest.mark.skipif(not GENERATOR.exists(), reason="scripts not available")
@@ -57,7 +65,14 @@ def test_stored_results_are_langdetects(tmp_path):
     )
     assert out.returncode == 0, out.stderr
     stored = json.loads((TESTS / "standalone.json").read_text(encoding="utf-8"))
-    assert json.loads(copy.read_text(encoding="utf-8")) == stored
+    fresh = json.loads(copy.read_text(encoding="utf-8"))
+    assert fresh.keys() == stored.keys()
+    assert (fresh["seed"], fresh["texts"]) == (stored["seed"], stored["texts"])
+    same_result = load_check().same_result
+    for key in ("sequential", "neumaier"):
+        pairs = zip(stored[key], fresh[key])
+        differ = [i for i, (want, got) in enumerate(pairs) if not same_result(want, got)]
+        assert len(fresh[key]) == len(stored[key]) and not differ, (key, differ)
 
 
 def test_unicode_tables():

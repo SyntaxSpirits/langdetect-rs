@@ -7,8 +7,9 @@
 - On a Python whose `unicodedata` version has no built-in `str.isupper()` tables,
   `langdetect_rs` warns on import (`RuntimeWarning`) that it uses the Unicode 17.0 tables.
 - CI tests CPython 3.15 and free-threaded 3.14, and checks a wheel installed without
-  `langdetect` against stored `langdetect` results. Releases are published only after the
-  built wheel and sdist pass that check in clean environments.
+  `langdetect` against stored `langdetect` results (to a relative tolerance of 1e-9, as
+  `langdetect` itself differs in the last bits between platforms). Releases are published only
+  after the built wheel and sdist pass that check in clean environments.
 - README: processing large corpora and dataframes in chunks with the batch functions.
 
 ## 0.1.0 - 2026-10-11

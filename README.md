@@ -146,9 +146,11 @@ lone surrogates, property-based tests, every detector option, custom and JSON pr
 maps and error cases, on CPython 3.9 to 3.15 and free-threaded 3.14. A separate script
 compares all 127,500 texts of the WiLI-2018 and papluca test sets. Before a release, the built
 wheel and sdist are installed in clean environments without `langdetect` and checked against
-stored `langdetect` results for 300 texts.
+stored `langdetect` results for 300 texts, with a relative tolerance of 1e-9 because of the
+platform difference described below.
 
-`langdetect`'s own results depend on the Python it runs on, and `langdetect-rs` follows:
+`langdetect`'s own results depend on the Python and the platform it runs on, and
+`langdetect-rs` follows:
 
 - From Python 3.12, `sum()` uses compensated summation. `langdetect` normalises
   probabilities with `sum()`, so its probabilities on WiLI-2018 and papluca differ between
@@ -161,6 +163,10 @@ stored `langdetect` results for 300 texts.
 - `langdetect` loads its profiles in `os.listdir` order, which depends on the file system and
   changes the last bits of a probability in about one text in 100,000. If `langdetect` is
   installed, `langdetect-rs` uses its order; otherwise, alphabetical order.
+- The random walk draws from `random.gauss`, which calls the platform's `log` and `cos`. On
+  the 300 stored texts, `langdetect`'s probabilities differ between macOS, glibc and musl in
+  4 texts, by at most 1e-14 relative. `langdetect-rs` calls the same functions, so it is
+  bit-identical to `langdetect` on the same platform.
 
 Factories and detectors can be pickled, also across processes, and batches stay usable in
 processes forked after a batch call.

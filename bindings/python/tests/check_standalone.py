@@ -1,22 +1,51 @@
 """Compare langdetect_rs, installed without langdetect, with the langdetect 1.0.9 results in
 standalone.json (made by scripts/gen_standalone.py).
 
+langdetect's random walk calls the platform's log and cos, so its last bits differ between
+macOS, glibc, musl and Windows; probabilities are compared with a relative tolerance.
+
 Usage: python check_standalone.py [standalone.json]
 """
 
-import hashlib
 import importlib.util
 import json
-import struct
+import math
 import sys
 from pathlib import Path
 
 import langdetect_rs
 from langdetect_rs import PROFILES_DIRECTORY, DetectorFactory, LangDetectException
 
+REL_TOL = 1e-9
+SMALL = 1e-12
 
-def digest(langprob):
-    return hashlib.sha256(struct.pack(f"<{len(langprob)}d", *langprob)).hexdigest()
+
+def close(a, b):
+    return math.isclose(a, b, rel_tol=REL_TOL)
+
+
+def same_langs(want, got):
+    if want is None or got is None:
+        return want is got
+    return len(want) == len(got) and all(
+        wl == gl and close(wp, gp) for (wl, wp), (gl, gp) in zip(want, got)
+    )
+
+
+def same_langprob(want, got):
+    if want is None or got is None:
+        return want is got
+    for lang in want.keys() | got.keys():
+        w, g = want.get(lang, 0.0), got.get(lang, 0.0)
+        if not (close(w, g) or max(w, g) < SMALL * (1 + REL_TOL)):
+            return False
+    return True
+
+
+def same_result(want, got):
+    return same_langs(want["langs"], got["langs"]) and same_langprob(
+        want["langprob"], got["langprob"]
+    )
 
 
 def pairs(langs):
@@ -45,18 +74,22 @@ def main():
         try:
             got = {
                 "langs": pairs(detector.get_probabilities()),
-                "langprob": digest(detector.langprob),
+                "langprob": dict(zip(factory.langlist, detector.langprob)),
             }
         except LangDetectException:
             got = {"langs": None, "langprob": None}
         top = want["langs"] and want["langs"][0][0]
-        if got != want or pairs(batch[i]) != want["langs"] or tops[i] != top:
+        if (
+            not same_result(want, got)
+            or not same_langs(want["langs"], pairs(batch[i]))
+            or tops[i] != top
+        ):
             differ += 1
             print(f"text {i}: expected {want}, got {got}, batch {pairs(batch[i])}, {tops[i]}")
     if differ:
         sys.exit(f"{differ} of {len(texts)} texts differ from langdetect")
     version = sys.version.split()[0]
-    print(f"{len(texts)} texts identical to langdetect 1.0.9 on Python {version}")
+    print(f"{len(texts)} texts match langdetect 1.0.9 on Python {version}")
 
 
 if __name__ == "__main__":
