@@ -145,9 +145,8 @@ probability: sentences and synthetic texts for all 55 languages, random Unicode 
 lone surrogates, property-based tests, every detector option, custom and JSON profiles, prior
 maps and error cases, on CPython 3.9 to 3.15 and free-threaded 3.14. A separate script
 compares all 127,500 texts of the WiLI-2018 and papluca test sets. Before a release, the built
-wheel and sdist are installed in clean environments without `langdetect` and checked against
-stored `langdetect` results for 300 texts, with a relative tolerance of 1e-9 because of the
-platform difference described below.
+wheel and sdist are installed in clean environments without `langdetect` and compared with
+the results `langdetect` gives for 300 texts on the same machine.
 
 `langdetect`'s own results depend on the Python and the platform it runs on, and
 `langdetect-rs` follows:
@@ -163,10 +162,10 @@ platform difference described below.
 - `langdetect` loads its profiles in `os.listdir` order, which depends on the file system and
   changes the last bits of a probability in about one text in 100,000. If `langdetect` is
   installed, `langdetect-rs` uses its order; otherwise, alphabetical order.
-- The random walk draws from `random.gauss`, which calls the platform's `log` and `cos`. On
-  the 300 stored texts, `langdetect`'s probabilities differ between macOS, glibc and musl in
-  4 texts, by at most 1e-14 relative. `langdetect-rs` calls the same functions, so it is
-  bit-identical to `langdetect` on the same platform.
+- The random walk draws from `random.gauss`, which calls the platform's `log` and `cos`, so
+  `langdetect`'s probabilities differ in the last bits between macOS, glibc, musl and Windows
+  (in 4 of the 300 texts of the release check). `langdetect-rs` calls the same functions and
+  is bit-identical to `langdetect` on the same platform.
 
 Factories and detectors can be pickled, also across processes, and batches stay usable in
 processes forked after a batch call.
@@ -198,10 +197,10 @@ uv run pytest
 cd benchmarks && uv run --group bench python parity.py   # all 127,500 texts
 ```
 
-To check a build without `langdetect`, install the wheel from `uv build --wheel` in a clean
-environment and run `python tests/check_standalone.py` there. The expected results in
-`tests/standalone.json` come from `scripts/gen_standalone.py`, run under Python 3.11 or earlier
-and under 3.12 or later.
+To check a build without `langdetect`, run `python tests/make_reference.py reference.json`
+where `langdetect` is installed, then install the wheel from `uv build --wheel` in a clean
+environment with the same Python on the same machine and run
+`python tests/check_standalone.py reference.json` there.
 
 ## License
 

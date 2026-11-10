@@ -101,14 +101,17 @@ jobs:
       - name: Install the wheel and the sdist in clean venvs and compare with langdetect
         run: |
           mkdir "$RUNNER_TEMP/smoke"
-          cp bindings/python/tests/check_standalone.py bindings/python/tests/standalone.json "$RUNNER_TEMP/smoke"
+          cp bindings/python/tests/make_reference.py bindings/python/tests/check_standalone.py "$RUNNER_TEMP/smoke"
           cd "$RUNNER_TEMP/smoke"
+          uv venv reference
+          uv pip install --python reference langdetect==1.0.9
+          reference/bin/python make_reference.py reference.json
           uv venv wheel
           uv pip install --python wheel "$GITHUB_WORKSPACE"/dist/*.whl
-          wheel/bin/python check_standalone.py
+          wheel/bin/python check_standalone.py reference.json
           uv venv sdist
           uv pip install --python sdist "$GITHUB_WORKSPACE"/dist/*.tar.gz
-          sdist/bin/python check_standalone.py
+          sdist/bin/python check_standalone.py reference.json
 
   pypi:
     if: startsWith(github.ref, 'refs/tags/')

@@ -2,9 +2,7 @@
 free-threaded Python."""
 
 import importlib.util
-import json
 import os
-import shutil
 import subprocess
 import sys
 import sysconfig
@@ -17,14 +15,6 @@ import pytest
 from langdetect_rs import _core
 
 TESTS = Path(__file__).parent
-GENERATOR = TESTS.parents[2] / "scripts" / "gen_standalone.py"
-
-
-def load_check():
-    spec = importlib.util.spec_from_file_location("check_standalone", TESTS / "check_standalone.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def run_python(code, *args):
@@ -36,7 +26,18 @@ def run_python(code, *args):
     )
 
 
-def test_without_langdetect():
+@pytest.mark.skipif(
+    importlib.util.find_spec("langdetect") is None, reason="needs langdetect for the reference"
+)
+def test_without_langdetect(tmp_path):
+    reference = tmp_path / "reference.json"
+    out = subprocess.run(
+        [sys.executable, str(TESTS / "make_reference.py"), str(reference)],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert out.returncode == 0, out.stderr
     out = run_python(
         """
         import importlib.machinery, runpy, sys
@@ -51,28 +52,10 @@ def test_without_langdetect():
         runpy.run_path(sys.argv[0], run_name="__main__")
         """,
         str(TESTS / "check_standalone.py"),
+        str(reference),
     )
     assert out.returncode == 0, out.stdout + out.stderr
-    assert "300 texts match" in out.stdout
-
-
-@pytest.mark.skipif(not GENERATOR.exists(), reason="scripts not available")
-def test_stored_results_are_langdetects(tmp_path):
-    copy = tmp_path / "standalone.json"
-    shutil.copy(TESTS / "standalone.json", copy)
-    out = subprocess.run(
-        [sys.executable, str(GENERATOR), str(copy)], capture_output=True, text=True, timeout=120
-    )
-    assert out.returncode == 0, out.stderr
-    stored = json.loads((TESTS / "standalone.json").read_text(encoding="utf-8"))
-    fresh = json.loads(copy.read_text(encoding="utf-8"))
-    assert fresh.keys() == stored.keys()
-    assert (fresh["seed"], fresh["texts"]) == (stored["seed"], stored["texts"])
-    same_result = load_check().same_result
-    for key in ("sequential", "neumaier"):
-        pairs = zip(stored[key], fresh[key])
-        differ = [i for i, (want, got) in enumerate(pairs) if not same_result(want, got)]
-        assert len(fresh[key]) == len(stored[key]) and not differ, (key, differ)
+    assert "300 texts identical" in out.stdout
 
 
 def test_unicode_tables():

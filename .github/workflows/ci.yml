@@ -70,13 +70,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv build --wheel --out-dir dist bindings/python
-      - name: Compare with langdetect results in a venv without langdetect
+      - name: Compare a venv without langdetect with langdetect on this machine
         run: |
-          cp bindings/python/tests/check_standalone.py bindings/python/tests/standalone.json "$RUNNER_TEMP"
+          cp bindings/python/tests/make_reference.py bindings/python/tests/check_standalone.py "$RUNNER_TEMP"
           cd "$RUNNER_TEMP"
+          uv venv reference
+          uv pip install --python reference langdetect==1.0.9
+          reference/bin/python make_reference.py reference.json
           uv venv clean
           uv pip install --python clean "$GITHUB_WORKSPACE"/dist/*.whl
-          clean/bin/python check_standalone.py
+          clean/bin/python check_standalone.py reference.json
 
   musl:
     runs-on: ubuntu-latest

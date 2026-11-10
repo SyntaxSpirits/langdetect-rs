@@ -1,11 +1,10 @@
-"""Generate bindings/python/tests/standalone.json, the langdetect 1.0.9 results that
-bindings/python/tests/check_standalone.py expects from langdetect_rs without langdetect.
+"""Write langdetect 1.0.9's results for 300 texts to OUT.json, for check_standalone.py to
+compare with langdetect_rs installed without langdetect.
 
-Usage: python gen_standalone.py OUT.json
-Run it under a Python up to 3.11 and under one from 3.12, which sum() differently; each run
-adds the results for its Python and keeps the texts already in OUT.json. Profiles are loaded
-in name order, as langdetect_rs does when langdetect is not installed. Probabilities below
-SMALL are left out of langprob.
+Usage: python make_reference.py OUT.json
+Run it on the machine and the Python minor version the check runs on: langdetect's last bits
+depend on the platform's log and cos (random.gauss) and on the Python's sum(). Profiles are
+loaded in name order, as langdetect_rs does when langdetect is not installed.
 """
 
 import json
@@ -17,7 +16,6 @@ from langdetect import DetectorFactory, LangDetectException
 from langdetect.detector_factory import PROFILES_DIRECTORY
 
 SEED = 0
-SMALL = 1e-12
 
 POOLS = [
     (0x20, 0x7E),
@@ -62,18 +60,7 @@ def make_texts():
     return texts
 
 
-def significant(langlist, langprob):
-    return {lang: p for lang, p in zip(langlist, langprob) if p >= SMALL}
-
-
 def main():
-    out = sys.argv[1]
-    try:
-        with open(out, encoding="utf-8") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        data = {"seed": SEED, "texts": make_texts()}
-
     factory = DetectorFactory()
     listdir = os.listdir
     os.listdir = lambda directory: sorted(listdir(directory))
@@ -81,10 +68,11 @@ def main():
         factory.load_profile(PROFILES_DIRECTORY)
     finally:
         os.listdir = listdir
-    factory.set_seed(data["seed"])
+    factory.set_seed(SEED)
 
+    texts = make_texts()
     results = []
-    for text in data["texts"]:
+    for text in texts:
         detector = factory.create()
         detector.append(text)
         try:
@@ -92,17 +80,18 @@ def main():
         except LangDetectException:
             results.append({"langs": None, "langprob": None})
             continue
-        langprob = significant(factory.langlist, detector.langprob)
-        results.append({"langs": langs, "langprob": langprob})
-    data["neumaier" if sys.version_info >= (3, 12) else "sequential"] = results
+        results.append({"langs": langs, "langprob": detector.langprob})
 
-    fields = [f'"seed": {data["seed"]}']
-    for key in ("texts", "sequential", "neumaier"):
-        if key in data:
-            rows = ",\n".join(json.dumps(row, ensure_ascii=False) for row in data[key])
-            fields.append(f'"{key}": [\n{rows}\n]')
-    with open(out, "w", encoding="utf-8", newline="\n") as f:
-        f.write("{\n" + ",\n".join(fields) + "\n}\n")
+    python = "{}.{}".format(*sys.version_info[:2])
+    data = {
+        "python": python,
+        "seed": SEED,
+        "langlist": factory.get_lang_list(),
+        "texts": texts,
+        "results": results,
+    }
+    with open(sys.argv[1], "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
 
 
 if __name__ == "__main__":
