@@ -58,6 +58,35 @@ detect_batch(["Guten Morgen, wie geht es dir heute?", "Bonjour tout le monde", "
 
 Set `RAYON_NUM_THREADS` to limit the number of threads.
 
+### Large corpora and dataframes
+
+Pass a large corpus in chunks, so that only one chunk of texts and results is in memory at a
+time. With a seed, the results do not depend on the chunk size:
+
+```python
+from itertools import islice
+
+from langdetect_rs import DetectorFactory, detect_batch, detect_langs_batch
+
+DetectorFactory.seed = 0
+
+
+def in_chunks(batch, texts, size=10_000):
+    texts = iter(texts)
+    while chunk := list(islice(texts, size)):
+        yield from batch(chunk)
+
+
+df["lang"] = list(in_chunks(detect_batch, df["text"].fillna("")))
+langs = list(in_chunks(detect_langs_batch, df["text"].fillna("")))
+# e.g. [[de:0.9999959448286744], None, [fr:0.9999975839780009], ...]
+```
+
+Each text gets `None` where `detect` or `detect_langs` would raise `LangDetectException` for
+a text without features: empty, or only digits, punctuation, URLs and e-mail addresses. Other
+errors are raised for the whole chunk. The batch functions take only `str`, so missing values
+(`None`, `NaN`) have to be replaced first; `""` gives `None`.
+
 ### unstructured
 
 Since 0.27.28, `unstructured` uses `langdetect-rs` when it is installed and
@@ -114,8 +143,10 @@ for lang in factory.detect_langs("Ceci est une phrase en français.")? {
 The tests compare `langdetect-rs` with `langdetect` 1.0.9 and fail on any difference in any
 probability: sentences and synthetic texts for all 55 languages, random Unicode including
 lone surrogates, property-based tests, every detector option, custom and JSON profiles, prior
-maps and error cases, on CPython 3.9 to 3.15. A separate script compares all 127,500 texts of
-the WiLI-2018 and papluca test sets.
+maps and error cases, on CPython 3.9 to 3.15 and free-threaded 3.14. A separate script
+compares all 127,500 texts of the WiLI-2018 and papluca test sets. Before a release, the built
+wheel and sdist are installed in clean environments without `langdetect` and checked against
+stored `langdetect` results for 300 texts.
 
 `langdetect`'s own results depend on the Python it runs on, and `langdetect-rs` follows:
 
@@ -125,13 +156,18 @@ the WiLI-2018 and papluca test sets.
   change).
 - `str.isupper()` follows the Unicode version of the Python, and decides when a run of
   capital letters is skipped. Tables for Unicode 13.0 to 17.0 (Python 3.9 to 3.15) are built
-  in.
+  in. On a Python with another Unicode version, `langdetect-rs` uses the Unicode 17.0 tables
+  and issues a `RuntimeWarning` on import, as its results can then differ from `langdetect`'s.
 - `langdetect` loads its profiles in `os.listdir` order, which depends on the file system and
   changes the last bits of a probability in about one text in 100,000. If `langdetect` is
   installed, `langdetect-rs` uses its order; otherwise, alphabetical order.
 
 Factories and detectors can be pickled, also across processes, and batches stay usable in
 processes forked after a batch call.
+
+On free-threaded CPython, importing `langdetect_rs` enables the GIL (CPython reports this with
+a `RuntimeWarning`). There are no free-threaded wheels, so pip builds one from the sdist, which
+needs a Rust toolchain.
 
 Known differences:
 
@@ -155,6 +191,11 @@ uv sync --group dev
 uv run pytest
 cd benchmarks && uv run --group bench python parity.py   # all 127,500 texts
 ```
+
+To check a build without `langdetect`, install the wheel from `uv build --wheel` in a clean
+environment and run `python tests/check_standalone.py` there. The expected results in
+`tests/standalone.json` come from `scripts/gen_standalone.py`, run under Python 3.11 or earlier
+and under 3.12 or later.
 
 ## License
 

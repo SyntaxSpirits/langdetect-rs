@@ -33,8 +33,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         include:
+          - os: ubuntu-latest
+            python: "3.14t"
           - os: macos-latest
             python: "3.13"
           - os: windows-latest
@@ -53,6 +55,28 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --group dev
       - run: uv run pytest
+
+  standalone:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv build --wheel --out-dir dist bindings/python
+      - name: Compare with langdetect results in a venv without langdetect
+        run: |
+          cp bindings/python/tests/check_standalone.py bindings/python/tests/standalone.json "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"
+          uv venv clean
+          uv pip install --python clean "$GITHUB_WORKSPACE"/dist/*.whl
+          clean/bin/python check_standalone.py
 
   musl:
     runs-on: ubuntu-latest
