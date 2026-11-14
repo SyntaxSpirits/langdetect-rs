@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import unicodedata
+import warnings
 from importlib.machinery import PathFinder
 from os import path
 
@@ -13,6 +14,16 @@ from .language import Language
 from .utils.lang_profile import LangProfile
 
 _NEUMAIER_SUM = sys.version_info >= (3, 12)
+
+_UNICODE_TABLES = _core.unicode_tables(unicodedata.unidata_version)
+if unicodedata.unidata_version != _UNICODE_TABLES:
+    warnings.warn(
+        f"langdetect_rs has no str.isupper() tables for Unicode {unicodedata.unidata_version}"
+        f" (unicodedata of this Python) and uses those of Unicode {_UNICODE_TABLES}; results"
+        " can differ from langdetect's.",
+        RuntimeWarning,
+        stacklevel=1,
+    )
 
 
 def _new_core():
