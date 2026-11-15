@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 - 2026-11-15
 
 - On free-threaded CPython, importing `langdetect_rs` now enables the GIL instead of declaring
   the module safe to run without it.
